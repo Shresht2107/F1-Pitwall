@@ -1,0 +1,26 @@
+circuit_id,CircuitName,CircuitType,OvertakingIndex
+bahrain,Bahrain International Circuit,permanent,7
+jeddah,Jeddah Corniche Circuit,street,5
+albert_park,Albert Park Circuit,street,5
+imola,Autodromo Enzo e Dino Ferrari,permanent,3
+miami,Miami International Autodrome,street,5
+catalunya,Circuit de Barcelona-Catalunya,permanent,4
+monaco,Circuit de Monaco,street,1
+baku,Baku City Circuit,street,8
+villeneuve,Circuit Gilles Villeneuve,street,6
+silverstone,Silverstone Circuit,permanent,7
+red_bull_ring,Red Bull Ring,permanent,6
+paul_ricard,Circuit Paul Ricard,permanent,3
+hungaroring,Hungaroring,permanent,3
+spa,Circuit de Spa-Francorchamps,permanent,7
+zandvoort,Circuit Zandvoort,permanent,4
+monza,Autodromo Nazionale di Monza,permanent,9
+marina_bay,Marina Bay Street Circuit,street,3
+suzuka,Suzuka Circuit,permanent,5
+americas,Circuit of the Americas,permanent,6
+rodriguez,Autodromo Hermanos Rodriguez,permanent,4
+interlagos,Autodromo Jose Carlos Pace,permanent,7
+yas_marina,Yas Marina Circuit,permanent,5
+losail,Losail International Circuit,permanent,6
+las_vegas,Las Vegas Strip Circuit,street,6
+shanghai,Shanghai International Circuit,permanent,7

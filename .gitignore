@@ -1,0 +1,49 @@
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Virtual environments ─────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Testing ──────────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ── FastF1 cache (large binary .ff1pkl session files) ────────────────────────
+fastf1_cache/
+*.ff1pkl
+
+# ── Qdrant local vector store ────────────────────────────────────────────────
+qdrant_storage/
+
+# ── Vendored third-party source ──────────────────────────────────────────────
+semchunk-main/
+
+# ── Archives ─────────────────────────────────────────────────────────────────
+*.zip
+*.tar.gz
+*.tar
+
+# ── Next.js ──────────────────────────────────────────────────────────────────
+pitwall/.next/
+pitwall/node_modules/
+pitwall/tsconfig.tsbuildinfo
+
+# ── Environment / secrets ────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
