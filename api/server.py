@@ -25,7 +25,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://pitwall.vercel.app",
+        "https://f1-pitwall-beta.vercel.app",
         "https://*.vercel.app",
     ],
     allow_credentials=True,
