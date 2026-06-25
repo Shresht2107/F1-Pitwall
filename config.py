@@ -1,5 +1,17 @@
-# Shared configuration for the F1 Prediction pipeline.
-# Import this in collect_data.py, stage2.py, regressor.py, and stage4.py.
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Qdrant
+QDRANT_URL     = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)
+
+# Groq
+GROQ_API_KEY   = os.getenv("GROQ_API_KEY")
+
+# Nomic
+NOMIC_API_KEY  = os.getenv("NOMIC_API_KEY")
 
 SEASONS = {
     2022: range(1, 23),  # 22 races
@@ -11,10 +23,10 @@ SEASONS = {
 TRAIN_YEARS = [2022, 2023]
 TEST_YEAR   = 2024
 
-CACHE_DIR          = "./fastf1_cache"
+CACHE_DIR               = "./fastf1_cache"
 JOLPICA_RAW_PATH        = "jolpica_raw.csv"
 JOLPICA_QUALIFYING_PATH = "jolpica_qualifying.csv"
 JOLPICA_STANDINGS_PATH  = "jolpica_standings.csv"
 CIRCUITS_PATH           = "circuits.csv"
-STAGE2_OUTPUT      = "stage2_dataset.csv"
-PACE_DELTAS_OUTPUT = "pace_deltas.csv"
+STAGE2_OUTPUT           = "stage2_dataset.csv"
+PACE_DELTAS_OUTPUT      = "pace_deltas.csv"

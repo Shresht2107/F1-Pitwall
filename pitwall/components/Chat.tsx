@@ -117,6 +117,10 @@ export default function Chat() {
   const { setRace, setLoading: setRaceLoading } = useRace();
 
   useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/health`).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
@@ -298,7 +302,7 @@ export default function Chat() {
             letterSpacing: "0.08em",
           }}
         >
-          Powered by Qwen3:4b · nomic-embed-text · Qdrant
+          Powered by Qwen3-32b · nomic-embed-text-v1.5 · Qdrant Cloud
         </div>
       </div>
     </div>

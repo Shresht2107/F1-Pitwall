@@ -9,14 +9,17 @@ from __future__ import annotations
 
 import re
 
-import ollama
+import nomic
+from nomic import embed
 from qdrant_client import QdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchAny, MatchValue
 
-QDRANT_URL  = "http://localhost:6333"
-COLLECTION  = "f1_rag"
-EMBED_MODEL = "nomic-embed-text"
-TOP_K       = 5
+import config
+
+nomic.login(token=config.NOMIC_API_KEY)
+
+COLLECTION = "f1_rag"
+TOP_K      = 5
 
 _client: QdrantClient | None = None
 
@@ -24,13 +27,17 @@ _client: QdrantClient | None = None
 def _get_client() -> QdrantClient:
     global _client
     if _client is None:
-        _client = QdrantClient(url=QDRANT_URL)
+        _client = QdrantClient(url=config.QDRANT_URL, api_key=config.QDRANT_API_KEY)
     return _client
 
 
-def _embed(text: str) -> list[float]:
-    resp = ollama.embeddings(model=EMBED_MODEL, prompt=text)
-    return resp["embedding"]
+def _embed_query(text: str) -> list[float]:
+    output = embed.text(
+        texts=[text],
+        model="nomic-embed-text-v1.5",
+        task_type="search_query",
+    )
+    return output["embeddings"][0]
 
 
 # Known driver codes and constructors present in the dataset
@@ -47,7 +54,6 @@ _CONSTRUCTOR_ALIASES: dict[str, str] = {
     "rb": "rb", "racing bulls": "rb", "sauber": "sauber", "kick sauber": "sauber",
 }
 
-# Map of keyword → circuit payload string for filtering by race name
 _CIRCUIT_KEYWORDS: dict[str, str] = {
     "bahrain": "Bahrain GP", "saudi": "Saudi Arabian GP", "jeddah": "Saudi Arabian GP",
     "australian": "Australian GP", "melbourne": "Australian GP",
@@ -80,7 +86,6 @@ def _extract_filters(query: str) -> Filter | None:
     Parse year, driver codes, circuit name, and team name from free-text query.
     Returns a Qdrant Filter or None if nothing specific was detected.
     """
-    q_upper = query.upper()
     q_lower = query.lower()
     conditions = []
 
@@ -90,7 +95,7 @@ def _extract_filters(query: str) -> Filter | None:
         conditions.append(FieldCondition(key="year", match=MatchAny(any=years)))
 
     # Driver codes: match only explicitly uppercase tokens in the original query.
-    # Using q_upper would match common words ("had"→HAD, "the"→THE) as driver codes.
+    # Using q_upper would match common words ("had"→HAD) as driver codes.
     tokens = set(re.findall(r'\b[A-Z]{3}\b', query))
     found_drivers = list(_DRIVER_CODES & tokens)
     if found_drivers:
@@ -123,7 +128,7 @@ def retrieve(query: str, top_k: int = TOP_K) -> list[dict]:
     Return top_k results as dicts with keys: text, year, round, circuit, score.
     """
     client = _get_client()
-    vector = _embed(query)
+    vector = _embed_query(query)
     payload_filter = _extract_filters(query)
 
     response = client.query_points(

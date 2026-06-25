@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PYTHON_API = process.env.PYTHON_API_URL ?? "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const upstream = await fetch(
-      `${PYTHON_API}/race?year=${year}&round=${round}`,
+      `${API_URL}/race?year=${year}&round=${round}`,
       { cache: "no-store" },
     );
 

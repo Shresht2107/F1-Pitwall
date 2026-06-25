@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+xgboost
+scikit-learn
+pandas
+numpy
+fastf1
+requests
+qdrant-client
+groq
+nomic
+langchain-text-splitters
+python-dotenv

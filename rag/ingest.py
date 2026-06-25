@@ -3,6 +3,7 @@ Ingest pipeline: build race documents → chunk → embed → upsert into Qdrant
 
 Run once (or re-run to rebuild the collection):
     /opt/anaconda3/bin/python3 -m rag.ingest
+    /opt/anaconda3/bin/python3 -m rag.ingest --recreate
 """
 
 from __future__ import annotations
@@ -10,20 +11,20 @@ from __future__ import annotations
 import sys
 import uuid
 
-import ollama
+import nomic
+from nomic import embed
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
+import config
 from rag.build_docs import build_documents
 
-QDRANT_URL = "http://localhost:6333"
-COLLECTION  = "f1_rag"
-EMBED_MODEL = "nomic-embed-text"
-VECTOR_DIM  = 768   # nomic-embed-text output dimension
+nomic.login(token=config.NOMIC_API_KEY)
 
-# Each race document is ~800–1500 chars; chunk at 800 chars with 100 overlap
-# so that driver-level lines stay grouped but long races split cleanly.
+COLLECTION = "f1_rag"
+VECTOR_DIM = 768   # nomic-embed-text-v1.5 output dimension
+
 _splitter = RecursiveCharacterTextSplitter(
     chunk_size=800,
     chunk_overlap=100,
@@ -31,9 +32,17 @@ _splitter = RecursiveCharacterTextSplitter(
 )
 
 
-def _embed(text: str) -> list[float]:
-    resp = ollama.embeddings(model=EMBED_MODEL, prompt=text)
-    return resp["embedding"]
+def _get_client() -> QdrantClient:
+    return QdrantClient(url=config.QDRANT_URL, api_key=config.QDRANT_API_KEY)
+
+
+def _embed_batch(texts: list[str]) -> list[list[float]]:
+    output = embed.text(
+        texts=texts,
+        model="nomic-embed-text-v1.5",
+        task_type="search_document",
+    )
+    return output["embeddings"]
 
 
 def setup_collection(client: QdrantClient, recreate: bool = False) -> None:
@@ -52,44 +61,49 @@ def setup_collection(client: QdrantClient, recreate: bool = False) -> None:
 
 
 def ingest(recreate: bool = False) -> None:
-    client = QdrantClient(url=QDRANT_URL)
+    client = _get_client()
     setup_collection(client, recreate=recreate)
 
     docs = build_documents()
     print(f"Built {len(docs)} race documents. Chunking...")
 
-    points: list[PointStruct] = []
-    total_chunks = 0
+    # Collect all chunks and their metadata first, then embed in one batched call
+    all_chunks: list[str] = []
+    all_meta: list[dict] = []
 
     for text, meta in docs:
         chunks = _splitter.split_text(text)
-        total_chunks += len(chunks)
-
         for chunk in chunks:
-            vector = _embed(chunk)
-            point = PointStruct(
-                id=str(uuid.uuid4()),
-                vector=vector,
-                payload={
-                    "text": chunk,
-                    "year": meta["year"],
-                    "round": meta["round"],
-                    "circuit": meta["circuit"],
-                    "drivers": meta["drivers"],
-                    "constructors": meta["constructors"],
-                },
-            )
-            points.append(point)
-
+            all_chunks.append(chunk)
+            all_meta.append(meta)
         label = f"{meta['year']} R{meta['round']:02d} ({meta['circuit']})"
         print(f"  {label}: {len(chunks)} chunk(s)", flush=True)
+
+    print(f"\nEmbedding {len(all_chunks)} chunks via Nomic Atlas API...")
+    vectors = _embed_batch(all_chunks)
+
+    points: list[PointStruct] = [
+        PointStruct(
+            id=str(uuid.uuid4()),
+            vector=vectors[i],
+            payload={
+                "text":         all_chunks[i],
+                "year":         all_meta[i]["year"],
+                "round":        all_meta[i]["round"],
+                "circuit":      all_meta[i]["circuit"],
+                "drivers":      all_meta[i]["drivers"],
+                "constructors": all_meta[i]["constructors"],
+            },
+        )
+        for i in range(len(all_chunks))
+    ]
 
     # Upsert in batches of 100
     batch_size = 100
     for i in range(0, len(points), batch_size):
         client.upsert(collection_name=COLLECTION, points=points[i : i + batch_size])
 
-    print(f"\nUpserted {total_chunks} chunks from {len(docs)} races into '{COLLECTION}'.")
+    print(f"Upserted {len(points)} chunks from {len(docs)} races into '{COLLECTION}'.")
 
 
 if __name__ == "__main__":

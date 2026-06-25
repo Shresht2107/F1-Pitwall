@@ -23,9 +23,14 @@ app = FastAPI(title="PIT WALL RAG API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://pitwall.vercel.app",
+        "https://*.vercel.app",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ── Load CSVs once at startup ─────────────────────────────────────────

@@ -1,17 +1,19 @@
 """
-Generation: build a prompt from retrieved chunks and call qwen3:4b via Ollama.
+Generation: build a prompt from retrieved chunks and call qwen3-32b via Groq.
 
 Thinking mode is off by default (faster, sufficient for factual Q&A).
-Pass think=True to enable qwen3's chain-of-thought for complex queries.
+Pass think=True to enable qwen3's chain-of-thought via /think token.
 """
 
 from __future__ import annotations
 
-import re
+from groq import Groq
 
-import ollama
+import config
 
-GEN_MODEL = "qwen3:4b"
+_groq_client = Groq(api_key=config.GROQ_API_KEY)
+
+GEN_MODEL = "qwen/qwen3-32b"
 
 _SYSTEM_PROMPT = """\
 You are an expert Formula 1 analyst. Answer the user's question using ONLY the \
@@ -20,12 +22,8 @@ names, positions, points, and seasons where relevant. If the answer cannot be \
 determined from the provided context, say so clearly rather than guessing.
 /no_think"""
 
+
 def _strip_thinking(text: str) -> str:
-    """
-    qwen3 via Ollama may embed thinking content directly in the response without
-    a proper opening <think> tag — only the closing </think> is reliably present.
-    Strip everything up to and including the last </think> when it appears.
-    """
     marker = "</think>"
     idx = text.rfind(marker)
     if idx != -1:
@@ -35,10 +33,10 @@ def _strip_thinking(text: str) -> str:
 
 def generate(query: str, context_chunks: list[dict], think: bool = False) -> str:
     """
-    Build a RAG prompt and call qwen3:4b.
+    Build a RAG prompt and call qwen3-32b via Groq.
 
     context_chunks: list of dicts from retrieve.retrieve(), each with 'text' key.
-    think: keep qwen3 chain-of-thought in the response (slower, better for
+    think: prepend /think token to enable chain-of-thought (slower, better for
            complex multi-step reasoning). Off by default.
     """
     context_text = "\n\n---\n\n".join(
@@ -56,14 +54,11 @@ def generate(query: str, context_chunks: list[dict], think: bool = False) -> str
         },
     ]
 
-    response = ollama.chat(
+    response = _groq_client.chat.completions.create(
         model=GEN_MODEL,
         messages=messages,
-        options={"temperature": 0.1},
-        think=think,
     )
-
-    answer = response.message.content
+    answer = response.choices[0].message.content
 
     if not think:
         answer = _strip_thinking(answer)
