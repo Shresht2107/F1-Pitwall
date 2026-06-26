@@ -15,7 +15,7 @@ import nomic
 from nomic import embed
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import Distance, PayloadSchemaType, PointStruct, VectorParams
 
 import config
 from rag.build_docs import build_documents
@@ -33,7 +33,7 @@ _splitter = RecursiveCharacterTextSplitter(
 
 
 def _get_client() -> QdrantClient:
-    return QdrantClient(url=config.QDRANT_URL, api_key=config.QDRANT_API_KEY)
+    return QdrantClient(url=config.QDRANT_URL, api_key=config.QDRANT_API_KEY, timeout=60)
 
 
 def _embed_batch(texts: list[str]) -> list[list[float]]:
@@ -55,7 +55,19 @@ def setup_collection(client: QdrantClient, recreate: bool = False) -> None:
             collection_name=COLLECTION,
             vectors_config=VectorParams(size=VECTOR_DIM, distance=Distance.COSINE),
         )
-        print(f"Created Qdrant collection '{COLLECTION}'.")
+        # Qdrant Cloud requires explicit payload indexes for filtered fields
+        for field, schema in [
+            ("year",         PayloadSchemaType.INTEGER),
+            ("drivers",      PayloadSchemaType.KEYWORD),
+            ("constructors", PayloadSchemaType.KEYWORD),
+            ("circuit",      PayloadSchemaType.KEYWORD),
+        ]:
+            client.create_payload_index(
+                collection_name=COLLECTION,
+                field_name=field,
+                field_schema=schema,
+            )
+        print(f"Created Qdrant collection '{COLLECTION}' with payload indexes.")
     else:
         print(f"Collection '{COLLECTION}' already exists — skipping creation.")
 

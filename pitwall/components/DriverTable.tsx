@@ -96,7 +96,7 @@ export default function DriverTable() {
             ? Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} i={i} />)
             : race?.drivers.map((d, i) => {
                 const isWinner = d.code === race.winner;
-                const posLabel = d.is_dnf ? "DNF" : d.position != null ? `P${d.position}` : "—";
+                const posLabel = d.position != null ? `P${d.position}` : (d.is_dnf ? "DNF" : "—");
                 const stintLabel = d.num_stints != null ? `${d.num_stints - 1}-stop` : "—";
                 const paceDelta = d.pace_delta != null
                   ? `${d.pace_delta >= 0 ? "+" : ""}${d.pace_delta.toFixed(1)}s`
