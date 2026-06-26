@@ -11,6 +11,88 @@ interface Message {
   text: string;
 }
 
+function WelcomeBanner() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "32px 24px",
+        gap: 12,
+        animation: "fadeIn 0.5s ease both",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 10,
+          fontWeight: 700,
+          color: "#e8002d",
+          letterSpacing: "0.2em",
+        }}
+      >
+        PIT WALL AI
+      </div>
+      <div
+        style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 15,
+          fontWeight: 700,
+          color: "#f0f0f0",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        Welcome to PIT WALL CHAT
+      </div>
+      <div
+        style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 13,
+          color: "#8a8a9a",
+          lineHeight: 1.65,
+          maxWidth: 320,
+        }}
+      >
+        Ask anything about F1 from the 2022–2024 seasons — race results, driver
+        strategies, tyre stints, podiums, pace deltas, and championship standings.
+      </div>
+      <div
+        style={{
+          marginTop: 8,
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+          width: "100%",
+          maxWidth: 320,
+        }}
+      >
+        {[
+          "Who won the 2023 Monaco GP?",
+          "What strategy did Norris run at Silverstone 2024?",
+          "Which team had the best rolling avg finish in 2022?",
+        ].map((hint) => (
+          <div
+            key={hint}
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10,
+              color: "#4a4a55",
+              border: "1px solid #2e2e36",
+              padding: "6px 10px",
+              textAlign: "left",
+            }}
+          >
+            {hint}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function UserBubble({ text }: { text: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "flex-end", animation: "fadeIn 0.3s ease" }}>
@@ -104,13 +186,8 @@ function AssistantBubble({ text }: { text: string }) {
   );
 }
 
-const INITIAL: Message[] = [
-  { id: "0", role: "user",      text: "What strategy did Verstappen run at the 2023 Belgian GP?" },
-  { id: "1", role: "assistant", text: `At the 2023 Belgian GP (Spa-Francorchamps), Verstappen ran a two-stop strategy:\n\nSTINT 1 ── MEDIUM · Laps 1–13\nSTINT 2 ── HARD · Laps 14–32\nSTINT 3 ── MEDIUM · Laps 33–44\n\nFastest lap: 1:46.771 (Lap 34). Won by +22.3s ahead of Pérez. Retrieved from 3 source chunks (similarity ≥ 0.89).` },
-];
-
 export default function Chat() {
-  const [messages, setMessages] = useState<Message[]>(INITIAL);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -235,6 +312,7 @@ export default function Chat() {
           gap: 16,
         }}
       >
+        {messages.length === 0 && !loading && <WelcomeBanner />}
         {messages.map((m) =>
           m.role === "user" ? (
             <UserBubble key={m.id} text={m.text} />

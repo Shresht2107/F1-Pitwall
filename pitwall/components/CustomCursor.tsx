@@ -7,24 +7,10 @@ export default function CustomCursor() {
   const vRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let cx = window.innerWidth / 2;
-    let cy = window.innerHeight / 2;
-    let tx = cx;
-    let ty = cy;
-    let rafId: number;
-
-    const lerp = (a: number, b: number, f: number) => a + (b - a) * f;
-
-    const tick = () => {
-      cx = lerp(cx, tx, 0.12);
-      cy = lerp(cy, ty, 0.12);
-      if (hRef.current) { hRef.current.style.left = cx + "px"; hRef.current.style.top = cy + "px"; }
-      if (vRef.current) { vRef.current.style.left = cx + "px"; vRef.current.style.top = cy + "px"; }
-      rafId = requestAnimationFrame(tick);
+    const onMove = (e: MouseEvent) => {
+      if (hRef.current) { hRef.current.style.left = e.clientX + "px"; hRef.current.style.top = e.clientY + "px"; }
+      if (vRef.current) { vRef.current.style.left = e.clientX + "px"; vRef.current.style.top = e.clientY + "px"; }
     };
-    rafId = requestAnimationFrame(tick);
-
-    const onMove = (e: MouseEvent) => { tx = e.clientX; ty = e.clientY; };
     document.addEventListener("mousemove", onMove);
 
     const onOver = (e: MouseEvent) => {
@@ -46,7 +32,6 @@ export default function CustomCursor() {
     document.addEventListener("click", onClick);
 
     return () => {
-      cancelAnimationFrame(rafId);
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseover", onOver);
       document.removeEventListener("click", onClick);
