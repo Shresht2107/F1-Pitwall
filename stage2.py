@@ -47,6 +47,42 @@ get_jolpica_race_context  = _fg.get_jolpica_race_context
 build_rolling_features    = _fg.build_rolling_features
 
 
+_COMPOUND_CODE = {
+    "SOFT": "S", "MEDIUM": "M", "HARD": "H",
+    "INTERMEDIATE": "I", "WET": "W",
+}
+
+
+def _strategy_summary(laps: pd.DataFrame) -> pd.Series:
+    """
+    For each driver in a single race's lap DataFrame, build a compact strategy
+    string like "S:14,M:21,H:18" (compound code : lap count per stint, ordered).
+    Stints with no valid compound are recorded as "?".
+    Returns a Series indexed by Driver.
+    """
+    if "Compound" not in laps.columns or laps.empty:
+        return pd.Series(dtype=str)
+
+    # Mode compound + lap count per (Driver, Stint)
+    stint_compound = (
+        laps.groupby(["Driver", "Stint"])["Compound"]
+        .agg(lambda x: x.mode().iloc[0] if len(x) > 0 else "?")
+    )
+    stint_laps = laps.groupby(["Driver", "Stint"])["LapNumber"].count()
+
+    stint_df = pd.DataFrame({"Compound": stint_compound, "LapCount": stint_laps}).reset_index()
+    stint_df = stint_df.sort_values(["Driver", "Stint"])
+
+    def _build(group):
+        parts = []
+        for _, row in group.iterrows():
+            code = _COMPOUND_CODE.get(str(row["Compound"]).upper(), "?")
+            parts.append(f"{code}:{int(row['LapCount'])}")
+        return ",".join(parts)
+
+    return stint_df.groupby("Driver").apply(_build)
+
+
 def build_pace_summary(year, rounds):
     """Aggregate FastF1 clean lap data to one row per (Driver, Round, Year)."""
     all_dfs = []
@@ -67,8 +103,18 @@ def build_pace_summary(year, rounds):
             )
             .reset_index()
         )
-        summary["Year"]       = year
-        summary["Round"]      = r
+        # Per-driver strategy string (e.g. "S:14,M:21,H:18")
+        strategy = _strategy_summary(laps)
+        if not strategy.empty:
+            summary = summary.merge(
+                strategy.rename("Strategy_Summary").reset_index(),
+                on="Driver", how="left",
+            )
+        else:
+            summary["Strategy_Summary"] = None
+
+        summary["Year"]        = year
+        summary["Round"]       = r
         summary["Is_Wet_Race"] = is_wet
         all_dfs.append(summary)
     return pd.concat(all_dfs, ignore_index=True) if all_dfs else pd.DataFrame()
@@ -81,6 +127,15 @@ if __name__ == "__main__":
     if os.path.exists(JOLPICA_RAW_PATH):
         print(f"\nLoading Jolpica context from '{JOLPICA_RAW_PATH}'...")
         context_raw = pd.read_csv(JOLPICA_RAW_PATH)
+        # Re-derive Is_DNF from the raw Status string when available so that
+        # fixing the allow-list here (without re-fetching) is sufficient.
+        if 'Status' in context_raw.columns:
+            def _classify_dnf(status: str) -> int:
+                s = str(status).strip()
+                if s in ('Finished', 'Lapped', 'Not Classified') or s.startswith('+'):
+                    return 0
+                return 1
+            context_raw['Is_DNF'] = context_raw['Status'].apply(_classify_dnf)
     else:
         print("\nFetching Jolpica context (run collect_data.py first for speed)...")
         all_ctx = []
