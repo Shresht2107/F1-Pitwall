@@ -126,12 +126,11 @@ def get_jolpica_race_context(year, round_num):
     for row in results:
         grid_pos = int(row['grid'])
 
-        # FIX: derive DNF status from the 'status' field instead of guessing
-        # from 'position'. Ergast/Jolpica's 'status' is "Finished" or
-        # "+N Lap(s)" for classified finishers, and a retirement reason
-        # (e.g. "Retired", "Accident", "Engine", "Disqualified") otherwise.
+        # Jolpica returns "Finished" (same-lap), "Lapped" (1+ laps behind),
+        # or "+N Lap(s)" (legacy Ergast format) for classified finishers.
+        # Everything else ("Retired", "Accident", "Engine", etc.) is a DNF.
         status = row.get('status', '')
-        is_dnf = 0 if (status == 'Finished' or status.startswith('+')) else 1
+        is_dnf = 0 if (status in ('Finished', 'Lapped') or status.startswith('+')) else 1
 
         # FIX: no more hardcoded fallback of 20. If 'position' genuinely
         # isn't a parseable number, leave it as NaN - Is_DNF (above) is now
@@ -147,7 +146,8 @@ def get_jolpica_race_context(year, round_num):
             'GridPosition': grid_pos,
             'Position': position,
             'Is_DNF': is_dnf,
-            'Points': float(row['points'])
+            'Points': float(row['points']),
+            'Status': status,
         }
         context_records.append(record)
 
