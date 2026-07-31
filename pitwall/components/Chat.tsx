@@ -380,7 +380,7 @@ export default function Chat() {
             letterSpacing: "0.08em",
           }}
         >
-          Powered by Qwen3-32b · nomic-embed-text-v1.5 · Qdrant Cloud
+          Powered by Qwen3.6-27b · nomic-embed-text-v1.5 · Qdrant Cloud
         </div>
       </div>
     </div>

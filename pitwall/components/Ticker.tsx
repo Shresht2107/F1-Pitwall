@@ -5,7 +5,7 @@ import { useRace } from "@/components/RaceContext";
 const PLACEHOLDER = [
   { text: "PIT WALL — RACE ANALYSIS SYSTEM", highlight: true },
   { text: "ASK A QUESTION IN THE CHAT TO LOAD RACE DATA", highlight: false },
-  { text: "POWERED BY QDRANT · NOMIC-EMBED-TEXT · QWEN3:4B", highlight: false },
+  { text: "POWERED BY QDRANT · NOMIC-EMBED-TEXT · QWEN3.6-27B", highlight: false },
   { text: "2022 – 2024 SEASONS · 69 RACES · XGBOOST CLASSIFIER", highlight: true },
 ];
 

@@ -7,7 +7,7 @@ const CARDS = [
   { icon: "🌐", name: "Jolpica-F1 API",   desc: "Race results, qualifying times & championship standings" },
   { icon: "⚡", name: "XGBoost",          desc: "Lap-time regressor + podium classifier" },
   { icon: "🔷", name: "Qdrant",           desc: "Local vector store for RAG retrieval" },
-  { icon: "🤖", name: "Ollama / Qwen3:4b",desc: "Local LLM for natural-language generation" },
+  { icon: "🤖", name: "Groq / Qwen3.6-27b",desc: "Hosted LLM for natural-language generation" },
   { icon: "🧮", name: "nomic-embed-text", desc: "Sentence embeddings for semantic search" },
 ];
 
