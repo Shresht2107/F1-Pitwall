@@ -3,29 +3,56 @@
 import { useState } from "react";
 import { useRace } from "@/components/RaceContext";
 
-// Canonical compound sequences by stint count
-const COMPOUND_SEQUENCES: Record<number, { compound: string; bg: string }[]> = {
-  1: [{ compound: "H", bg: "#4a4a55" }],
-  2: [{ compound: "M", bg: "#8b7a1a" }, { compound: "H", bg: "#4a4a55" }],
-  3: [{ compound: "S", bg: "#8b1a1a" }, { compound: "M", bg: "#8b7a1a" }, { compound: "H", bg: "#4a4a55" }],
-  4: [{ compound: "S", bg: "#8b1a1a" }, { compound: "M", bg: "#8b7a1a" }, { compound: "M", bg: "#8b7a1a" }, { compound: "H", bg: "#4a4a55" }],
+const COMPOUND_META: Record<string, { label: string; bg: string }> = {
+  S: { label: "Soft",         bg: "#8b1a1a" },
+  M: { label: "Medium",       bg: "#8b7a1a" },
+  H: { label: "Hard",         bg: "#4a4a55" },
+  I: { label: "Inter",        bg: "#1a5c1a" },
+  W: { label: "Wet",          bg: "#1a3a8b" },
+  "?": { label: "Unknown",    bg: "#3a3a45" },
 };
 
-const LEGEND = [
-  { label: "Soft",   bg: "#8b1a1a" },
-  { label: "Medium", bg: "#8b7a1a" },
-  { label: "Hard",   bg: "#4a4a55" },
-];
+// Fallback canonical sequences when we have a stint count but no summary string
+const CANONICAL: Record<number, string> = {
+  1: "H:1",
+  2: "M:1,H:1",
+  3: "S:1,M:1,H:1",
+  4: "S:1,M:1,M:1,H:1",
+};
+
+interface Stint {
+  code: string;
+  laps: number;
+  bg: string;
+  label: string;
+}
+
+function parseStrategy(summary: string): Stint[] {
+  return summary.split(",").map((seg) => {
+    const [code, laps] = seg.trim().split(":");
+    const meta = COMPOUND_META[code?.toUpperCase()] ?? COMPOUND_META["?"];
+    return { code: code?.toUpperCase() ?? "?", laps: parseInt(laps, 10) || 1, ...meta };
+  });
+}
 
 export default function TireStrategy() {
   const [hovered, setHovered] = useState<number | null>(null);
   const { race, loading } = useRace();
 
   const winner = race?.drivers.find((d) => d.code === race.winner);
-  const numStints = winner?.num_stints ?? null;
-  const stints = numStints != null
-    ? (COMPOUND_SEQUENCES[numStints] ?? COMPOUND_SEQUENCES[3])
-    : null;
+
+  const strategySummary =
+    winner?.strategy_summary ??
+    (winner?.num_stints != null ? CANONICAL[winner.num_stints] ?? CANONICAL[3] : null);
+
+  const stints: Stint[] | null = strategySummary ? parseStrategy(strategySummary) : null;
+  const totalLaps = stints ? stints.reduce((s, t) => s + t.laps, 0) : 0;
+  const isReal = !!winner?.strategy_summary;
+
+  // Unique compounds for legend
+  const legendCompounds: Stint[] = stints
+    ? [...new Map(stints.map((s) => [s.code, s])).values()]
+    : (Object.entries(COMPOUND_META).slice(0, 3).map(([code, meta]) => ({ code, laps: 0, ...meta })));
 
   return (
     <div
@@ -45,22 +72,22 @@ export default function TireStrategy() {
           color: "#8a8a9a",
           letterSpacing: "0.2em",
           marginBottom: 16,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
         }}
       >
         TIRE STRATEGY — WINNER
+        {stints && !isReal && (
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#4a4a55", fontWeight: 400 }}>
+            CANONICAL ESTIMATE
+          </span>
+        )}
       </div>
 
       {stints ? (
         <>
-          <div
-            style={{
-              display: "flex",
-              gap: 0,
-              height: 36,
-              overflow: "hidden",
-              marginBottom: 12,
-            }}
-          >
+          <div style={{ display: "flex", gap: 0, height: 36, overflow: "hidden", marginBottom: 12 }}>
             {stints.map((s, i) => (
               <div
                 key={i}
@@ -68,7 +95,7 @@ export default function TireStrategy() {
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
                 style={{
-                  flex: 1,
+                  flex: s.laps,
                   background: s.bg,
                   display: "flex",
                   alignItems: "center",
@@ -76,33 +103,31 @@ export default function TireStrategy() {
                   borderRight: i < stints.length - 1 ? "2px solid #1a1a1f" : undefined,
                   opacity: hovered === i ? 0.75 : 1,
                   transition: "opacity 0.2s",
+                  overflow: "hidden",
+                  minWidth: 0,
                 }}
               >
                 <span
                   style={{
                     fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 12,
+                    fontSize: 10,
                     fontWeight: 700,
                     color: "#f0f0f0",
+                    whiteSpace: "nowrap",
+                    padding: "0 4px",
                   }}
                 >
-                  {s.compound}
+                  {isReal ? `${s.code} · ${s.laps}` : s.code}
                 </span>
               </div>
             ))}
           </div>
 
-          <div style={{ display: "flex", gap: 20 }}>
-            {LEGEND.map((l) => (
-              <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 10, height: 10, background: l.bg }} />
-                <span
-                  style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: 11,
-                    color: "#8a8a9a",
-                  }}
-                >
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+            {legendCompounds.map((l) => (
+              <div key={l.code} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 10, height: 10, background: l.bg, flexShrink: 0 }} />
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#8a8a9a" }}>
                   {l.label}
                 </span>
               </div>
@@ -115,7 +140,7 @@ export default function TireStrategy() {
                 marginLeft: "auto",
               }}
             >
-              {numStints != null ? `${numStints - 1}-stop strategy` : ""}
+              {stints.length - 1}-stop · {isReal ? `${totalLaps} laps` : `${stints.length} stints`}
             </span>
           </div>
         </>
@@ -130,13 +155,7 @@ export default function TireStrategy() {
             marginBottom: 12,
           }}
         >
-          <span
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 11,
-              color: "#4a4a55",
-            }}
-          >
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#4a4a55" }}>
             Ask about a race to see strategy
           </span>
         </div>

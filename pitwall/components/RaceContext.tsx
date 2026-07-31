@@ -17,6 +17,7 @@ export interface DriverData {
   driver_rolling_avg_pts: number | null;
   pace_delta: number | null;
   num_stints: number | null;
+  strategy_summary: string | null;
   median_lap: number | null;
 }
 
