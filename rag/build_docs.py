@@ -49,6 +49,22 @@ _CIRCUIT_NAMES: dict[tuple[int, int], str] = {
 }
 
 
+_COMPOUND_NAMES = {"S": "SOFT", "M": "MEDIUM", "H": "HARD", "I": "INTER", "W": "WET"}
+
+
+def _fmt_strategy(summary: str) -> str:
+    """Convert 'S:14,M:21,H:18' → 'SOFT (14 laps) → MEDIUM (21 laps) → HARD (18 laps)'."""
+    try:
+        parts = []
+        for segment in summary.split(","):
+            code, laps = segment.strip().split(":")
+            name = _COMPOUND_NAMES.get(code.upper(), code)
+            parts.append(f"{name} ({laps} laps)")
+        return " → ".join(parts)
+    except Exception:
+        return summary
+
+
 def _fmt(val: Any, decimals: int = 1) -> str:
     try:
         f = float(val)
@@ -137,10 +153,20 @@ def build_documents() -> list[tuple[str, dict]]:
             lines.append(circuit_ctx)
         if wet_ctx:
             lines.append(wet_ctx)
+        winner_strategy_str = ""
+        if winner:
+            raw_strat = winner.get("Strategy_Summary", "")
+            if raw_strat and raw_strat not in ("", "nan"):
+                winner_strategy_str = _fmt_strategy(raw_strat)
+
         lines += [
             f"Winner: {winner_str}.",
             f"Podium: {podium_str}.",
             f"DNFs ({dnf_count}): {dnf_str}.",
+        ]
+        if winner_strategy_str:
+            lines.append(f"Winner strategy: {winner_strategy_str}.")
+        lines += [
             "",
             "Finishing order:",
         ]
@@ -155,11 +181,10 @@ def build_documents() -> list[tuple[str, dict]]:
             team_avg   = _fmt(d.get("Team_Rolling_Avg_Finish", ""), 1)
             drv_pts    = _fmt(d.get("Driver_Rolling_Avg_Points", ""), 1)
             track_temp = _fmt(d.get("Avg_TrackTemp", ""), 1)
-            stints = d.get("Num_Stints", "n/a")
-            try:
-                stints = int(float(stints))
-            except (ValueError, TypeError):
-                stints = "n/a"
+
+            # Build human-readable strategy string from Strategy_Summary
+            raw_strategy = d.get("Strategy_Summary", "")
+            strategy_str = _fmt_strategy(raw_strategy) if raw_strategy and raw_strategy != "nan" else "n/a"
 
             # Qualifying and championship context (may be n/a if not yet fetched)
             q_delta = _fmt(d.get("Q_DeltaToPole", ""), 3)
@@ -182,8 +207,9 @@ def build_documents() -> list[tuple[str, dict]]:
                 f"grid P{d['GridPosition']}, {d['Points']}pts, "
                 f"team rolling avg finish {team_avg}, "
                 f"driver rolling avg pts {drv_pts}, "
+                f"strategy {strategy_str}, "
                 f"median lap {lap_str}s, "
-                f"{stints} stints, track temp {track_temp}°C, "
+                f"track temp {track_temp}°C, "
                 f"pace delta {delta_str}"
                 + (f", {extra}." if extra else ".")
             )

@@ -56,28 +56,58 @@ _CONSTRUCTOR_ALIASES: dict[str, str] = {
 
 _CIRCUIT_KEYWORDS: dict[str, str] = {
     "bahrain": "Bahrain GP", "saudi": "Saudi Arabian GP", "jeddah": "Saudi Arabian GP",
-    "australian": "Australian GP", "melbourne": "Australian GP",
-    "japanese": "Japanese GP", "suzuka": "Japanese GP",
-    "chinese": "Chinese GP", "shanghai": "Chinese GP",
+    "australia": "Australian GP", "australian": "Australian GP", "melbourne": "Australian GP",
+    "japan": "Japanese GP", "japanese": "Japanese GP", "suzuka": "Japanese GP",
+    "china": "Chinese GP", "chinese": "Chinese GP", "shanghai": "Chinese GP",
     "miami": "Miami GP",
     "emilia romagna": "Emilia Romagna GP", "imola": "Emilia Romagna GP",
     "monaco": "Monaco GP", "monte carlo": "Monaco GP",
-    "canadian": "Canadian GP", "montreal": "Canadian GP",
-    "spanish": "Spanish GP", "barcelona": "Spanish GP",
-    "austrian": "Austrian GP", "red bull ring": "Austrian GP",
-    "british": "British GP", "silverstone": "British GP",
-    "hungarian": "Hungarian GP", "budapest": "Hungarian GP",
-    "belgian": "Belgian GP", "spa": "Belgian GP",
-    "dutch": "Dutch GP", "zandvoort": "Dutch GP",
-    "italian": "Italian GP", "monza": "Italian GP",
+    "canada": "Canadian GP", "canadian": "Canadian GP", "montreal": "Canadian GP",
+    "spain": "Spanish GP", "spanish": "Spanish GP", "barcelona": "Spanish GP",
+    "austria": "Austrian GP", "austrian": "Austrian GP", "red bull ring": "Austrian GP",
+    "britain": "British GP", "british": "British GP", "silverstone": "British GP",
+    "hungary": "Hungarian GP", "hungarian": "Hungarian GP", "budapest": "Hungarian GP",
+    "belgium": "Belgian GP", "belgian": "Belgian GP", "spa": "Belgian GP",
+    "netherlands": "Dutch GP", "dutch": "Dutch GP", "zandvoort": "Dutch GP",
+    "italy": "Italian GP", "italian": "Italian GP", "monza": "Italian GP",
     "singapore": "Singapore GP",
     "azerbaijan": "Azerbaijan GP", "baku": "Azerbaijan GP",
     "united states": "United States GP", "cota": "United States GP", "austin": "United States GP",
     "mexico city": "Mexico City GP", "mexico": "Mexico City GP",
     "são paulo": "São Paulo GP", "brazil": "São Paulo GP", "interlagos": "São Paulo GP",
-    "las vegas": "Las Vegas GP",
+    "las vegas": "Las Vegas GP", "vegas": "Las Vegas GP",
     "qatar": "Qatar GP", "lusail": "Qatar GP",
     "abu dhabi": "Abu Dhabi GP", "yas marina": "Abu Dhabi GP",
+}
+
+# Driver first-name → three-letter code for natural-language queries ("Max", "Lewis", etc.)
+_DRIVER_FIRST_NAMES: dict[str, str] = {
+    "max": "VER", "verstappen": "VER",
+    "checo": "PER", "perez": "PER", "sergio": "PER",
+    "charles": "LEC", "leclerc": "LEC",
+    "carlos": "SAI", "sainz": "SAI",
+    "lewis": "HAM", "hamilton": "HAM",
+    "george": "RUS", "russell": "RUS",
+    "lando": "NOR", "norris": "NOR",
+    "oscar": "PIA", "piastri": "PIA",
+    "fernando": "ALO", "alonso": "ALO",
+    "lance": "STR", "stroll": "STR",
+    "pierre": "GAS", "gasly": "GAS",
+    "esteban": "OCO", "ocon": "OCO",
+    "alex": "ALB", "albon": "ALB",
+    "logan": "SAR", "sargeant": "SAR",
+    "yuki": "TSU", "tsunoda": "TSU",
+    "daniel": "RIC", "ricciardo": "RIC",
+    "zhou": "ZHO", "guanyu": "ZHO",
+    "valtteri": "BOT", "bottas": "BOT",
+    "nico": "HUL", "hulkenberg": "HUL",
+    "kevin": "MAG", "magnussen": "MAG",
+    "oliver": "BEA", "bearman": "BEA",
+    "liam": "LAW", "lawson": "LAW",
+    "jack": "DOO", "doohan": "DOO",
+    "isack": "HAD", "hadjar": "HAD",
+    "gabriel": "BOR", "bortoleto": "BOR",
+    "franco": "COL", "colapinto": "COL",
 }
 
 
@@ -97,9 +127,13 @@ def _extract_filters(query: str) -> Filter | None:
     # Driver codes: match only explicitly uppercase tokens in the original query.
     # Using q_upper would match common words ("had"→HAD) as driver codes.
     tokens = set(re.findall(r'\b[A-Z]{3}\b', query))
-    found_drivers = list(_DRIVER_CODES & tokens)
+    found_drivers = set(_DRIVER_CODES & tokens)
+    # Also resolve first names and full surnames from the lowercased query
+    for word in re.findall(r'\b[a-z]+\b', q_lower):
+        if word in _DRIVER_FIRST_NAMES:
+            found_drivers.add(_DRIVER_FIRST_NAMES[word])
     if found_drivers:
-        conditions.append(FieldCondition(key="drivers", match=MatchAny(any=found_drivers)))
+        conditions.append(FieldCondition(key="drivers", match=MatchAny(any=list(found_drivers))))
 
     # Constructor: fuzzy match against alias table
     found_constructors = [cid for alias, cid in _CONSTRUCTOR_ALIASES.items() if alias in q_lower]
