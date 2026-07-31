@@ -87,7 +87,7 @@ def _safe_int(val) -> int | None:
 class ChatRequest(BaseModel):
     query: str
     top_k: int = 5
-    think: bool = False
+    think: bool = True
 
 
 class ChatResponse(BaseModel):
@@ -152,6 +152,7 @@ def race(year: int = Query(...), round: int = Query(...)) -> dict:
             "driver_rolling_avg_pts": _safe_float(row.get("Driver_Rolling_Avg_Points")),
             "pace_delta":             pace_delta,
             "num_stints":             _safe_int(row.get("Num_Stints")),
+            "strategy_summary":       str(row["Strategy_Summary"]) if pd.notna(row.get("Strategy_Summary")) else None,
             "median_lap":             _safe_float(row.get("Median_FuelCorrectedLapTime")),
         })
 
