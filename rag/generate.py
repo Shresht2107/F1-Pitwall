@@ -1,8 +1,8 @@
 """
-Generation: build a prompt from retrieved chunks and call qwen3-32b via Groq.
+Generation: build a prompt from retrieved chunks and call qwen3 via Groq.
 
-Thinking mode is off by default (faster, sufficient for factual Q&A).
-Pass think=True to enable qwen3's chain-of-thought via /think token.
+Thinking mode is on by default (better multi-step reasoning for strategy/pace
+questions). Pass think=False to disable qwen3's chain-of-thought via /no_think.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import config
 
 _groq_client = Groq(api_key=config.GROQ_API_KEY)
 
-GEN_MODEL = "qwen/qwen3-32b"
+GEN_MODEL = "qwen/qwen3.6-27b"
 
 _SYSTEM_PROMPT = """\
 You are PIT WALL, an expert Formula 1 race analyst. Your sole purpose is to \
